@@ -46,12 +46,20 @@ def solve2(data):
     return n
 
 
+@measure_time
+def solve2_alternative(data):
+    "David told me he used zip to solve this so i had to ..."
+    windows = list(map(sum, zip(data, data[1:], data[2:])))
+    return sum(a < b for a, b in zip(windows, windows[1:]))
+
+
 if __name__ == "__main__":
     import sys
 
     data = parse(open("input.txt").read().strip())
     print("Part 1: {}".format(solve1(data)))
     print("Part 2: {}".format(solve2(data)))
+    print("Part 2: {}".format(solve2_alternative(data)))
 
     print("\nTime taken:")
     for func, time in times:
