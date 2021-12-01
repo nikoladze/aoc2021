@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 from glob import glob1
 import sys
