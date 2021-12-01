@@ -39,11 +39,10 @@ def solve2(data):
     for i in range(2, len(data)):
         windows.append(data[i - 2] + data[i - 1] + data[i])
         try:
-            if windows[len(windows) - 2] < windows[len(windows) - 1]:
+            if windows[-2] < windows[-1]:
                 n += 1
         except IndexError:
             pass
-    print(windows)
     return n
 
 
