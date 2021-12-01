@@ -3,7 +3,7 @@
 import os
 from glob import glob1
 import sys
-from shutil import copyfile
+from shutil import copyfile, copystat
 import requests
 from datetime import date
 import logging
@@ -30,7 +30,9 @@ def setup_dir(day, languages):
             if file in os.listdir(newdir):
                 logger.warning(f"{newdir} already contains {file}, skipping")
             else:
-                copyfile(os.path.join(template_dir, file), os.path.join(newdir, file))
+                src, dst = os.path.join(template_dir, file), os.path.join(newdir, file)
+                copyfile(src, dst)
+                copystat(src, dst)
     logger.info(f"done copying templates to {newdir}")
 
 
