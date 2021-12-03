@@ -25,6 +25,10 @@ def parse(raw_data):
     return raw_data.split("\n")
 
 
+def count_ones(data, pos):
+    return sum(line[pos] == "1" for line in data)
+
+
 # PART 1
 @measure_time
 def solve1(data):
@@ -32,7 +36,7 @@ def solve1(data):
     epsilon = []
     n = len(data[0])
     for i in range(n):
-        total = sum(line[i] == "1" for line in data)
+        total = count_ones(data, i)
         if total > len(data) // 2:
             gamma.append("1")
             epsilon.append("0")
@@ -42,29 +46,23 @@ def solve1(data):
     return int("".join(gamma), 2) * int("".join(epsilon), 2)
 
 
-def count_ones(data, pos):
-    return sum(line[pos] == "1" for line in data)
-
+def find(data, condition):
+    data = data[:]
+    for i in range(len(data[0])):
+        if condition(count_ones(data, i), math.ceil(len(data) / 2)):
+            data = [line for line in data if line[i] == "1"]
+        else:
+            data = [line for line in data if line[i] == "0"]
+        if len(data) == 1:
+            return int(data[0], 2)
 
 def find_oxygen(data):
-    data = data[:]
-    for i in range(len(data[0])):
-        if count_ones(data, i) >= math.ceil(len(data) / 2):
-            data = [line for line in data if line[i] == "1"]
-        else:
-            data = [line for line in data if line[i] == "0"]
-        if len(data) == 1:
-            return int(data[0], 2)
+    return find(data, lambda ones, half_n: ones >= half_n)
+
 
 def find_co2(data):
-    data = data[:]
-    for i in range(len(data[0])):
-        if count_ones(data, i) < math.ceil(len(data) / 2):
-            data = [line for line in data if line[i] == "1"]
-        else:
-            data = [line for line in data if line[i] == "0"]
-        if len(data) == 1:
-            return int(data[0], 2)
+    return find(data, lambda ones, half_n: ones < half_n)
+
 
 # PART 2
 @measure_time
