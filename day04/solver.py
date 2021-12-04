@@ -20,7 +20,6 @@ def measure_time(func):
 
 
 class Board:
-
     def __init__(self, data):
         self.board = data
         self.marked = [[False for x in data] for y in data]
@@ -40,6 +39,16 @@ class Board:
             return True
         return False
 
+    @property
+    def score(self):
+        score = 0
+        for row, row_marked in zip(self.board, self.marked):
+            for val, marked in zip(row, row_marked):
+                if marked:
+                    continue
+                score += val
+        return score
+
     def __repr__(self):
         return (
             "\n".join([" ".join(str(i) for i in row) for row in self.board])
@@ -54,11 +63,9 @@ def parse(raw_data):
     raw_data = raw_data.split("\n")
     sequence = [int(i) for i in raw_data[0].split(",")]
     boards = []
-    for data in "\n".join(raw_data[1:]).split("\n\n"):
+    for data in "\n".join(raw_data[2:]).split("\n\n"):
         boards.append(
-            Board(
-                [[int(i) for i in line.split()] for line in data.split("\n")]
-            )
+            Board([[int(i) for i in line.split()] for line in data.split("\n")])
         )
     return sequence, boards
 
@@ -71,13 +78,7 @@ def solve1(data):
         for board in boards:
             board.mark(i)
             if board.has_win():
-                print(board, i)
-                sum_unmarked = 0
-                for row, row_marked in zip(board.board, board.marked):
-                    for val, marked in zip(row, row_marked):
-                        if not marked:
-                            sum_unmarked += val
-                return sum_unmarked * i
+                return board.score * i
 
 
 # PART 2
@@ -89,12 +90,7 @@ def solve2(data):
             board.mark(i)
             if board.has_win() and not board.done:
                 board.done = True
-                sum_unmarked = 0
-                for row, row_marked in zip(board.board, board.marked):
-                    for val, marked in zip(row, row_marked):
-                        if not marked:
-                            sum_unmarked += val
-                solution = sum_unmarked * i
+                solution = board.score * i
     return solution
 
 
