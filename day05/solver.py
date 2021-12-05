@@ -36,8 +36,8 @@ def parse(raw_data):
 def make_vent_map(data):
     return np.zeros(
         (
-            max(max(y1, y2) for (x1, y1), (x2, y2) in data) + 2,
-            max(max(x1, x2)for (x1, y1), (x2, y2) in data) + 2,
+            max(max(y1, y2) for (x1, y1), (x2, y2) in data) + 1,
+            max(max(x1, x2)for (x1, y1), (x2, y2) in data) + 1,
         ),
         dtype=int
     )
