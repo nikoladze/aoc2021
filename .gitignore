@@ -4,3 +4,4 @@
 *.pyc
 *.swp
 aoc_session.sh
+.ipynb_checkpoints

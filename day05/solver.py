@@ -33,7 +33,7 @@ def parse(raw_data):
     return list(parse_gen(raw_data))
 
 
-def make_vent_map(data):
+def make_vent_pixels(data):
     return np.zeros(
         (
             max(max(y1, y2) for (x1, y1), (x2, y2) in data) + 1,
@@ -43,50 +43,53 @@ def make_vent_map(data):
     )
 
 
-def horizontal_line(vent_map, x1, y1, x2, y2):
-    assert x1 == x2
-    y1, y2 = sorted((y1, y2))
-    vent_map[y1: y2 + 1, x1] += 1
+class VentMap:
+    def __init__(self, data, consider_diagonals=False):
+        self.map = make_vent_pixels(data)
+        self.consider_diagonals = consider_diagonals
+        self.fill_lines(data)
 
+    def fill_lines(self, data):
+        for (x1, y1), (x2, y2) in data:
+            if abs(x2 - x1) == abs(y2 - y1):
+                if not self.consider_diagonals:
+                    continue
+                self.diagonal_line(x1, y1, x2, y2)
+            elif x1 == x2:
+                self.horizontal_line(x1, y1, x2, y2)
+            elif y1 == y2:
+                self.vertical_line(x1, y1, x2, y2)
 
-def vertical_line(vent_map, x1, y1, x2, y2):
-    assert y1 == y2
-    x1, x2 = sorted((x1, x2))
-    vent_map[y1, x1: x2 + 1] += 1
+    def horizontal_line(self, x1, y1, x2, y2):
+        assert x1 == x2
+        y1, y2 = sorted((y1, y2))
+        self.map[y1: y2 + 1, x1] += 1
+
+    def vertical_line(self, x1, y1, x2, y2):
+        assert y1 == y2
+        x1, x2 = sorted((x1, x2))
+        self.map[y1, x1: x2 + 1] += 1
+
+    def diagonal_line(self, x1, y1, x2, y2):
+        assert abs(y2 - y1) == abs(x2 - x1)
+        step_x = 1 if x2 >= x1 else -1
+        step_y = 1 if y2 >= y1 else -1
+        for x, y in zip(range(x1, x2 + step_x, step_x), range(y1, y2 + step_y, step_y)):
+            self.map[y, x] += 1
 
 
 # PART 1
 @measure_time
 def solve1(data):
-    vent_map = make_vent_map(data)
-    for (x1, y1), (x2, y2) in data:
-        if x1 == x2:
-            horizontal_line(vent_map, x1, y1, x2, y2)
-        if y1 == y2:
-            vertical_line(vent_map, x1, y1, x2, y2)
-    return (vent_map >= 2).sum()
-
-
-def diagonal_line(vent_map, x1, y1, x2, y2):
-    assert abs(y2 - y1) == abs(x2 - x1)
-    step_x = 1 if x2 >= x1 else -1
-    step_y = 1 if y2 >= y1 else -1
-    for x, y in zip(range(x1, x2 + step_x, step_x), range(y1, y2 + step_y, step_y)):
-        vent_map[y, x] += 1
+    vent_map = VentMap(data)
+    return (vent_map.map >= 2).sum()
 
 
 # PART 2
 @measure_time
 def solve2(data):
-    vent_map = make_vent_map(data)
-    for (x1, y1), (x2, y2) in data:
-        if abs(x2 - x1) == abs(y2 - y1):
-            diagonal_line(vent_map, x1, y1, x2, y2)
-        elif x1 == x2:
-            horizontal_line(vent_map, x1, y1, x2, y2)
-        elif y1 == y2:
-            vertical_line(vent_map, x1, y1, x2, y2)
-    return (vent_map >= 2).sum()
+    vent_map = VentMap(data, consider_diagonals=True)
+    return (vent_map.map >= 2).sum()
 
 
 if __name__ == "__main__":
