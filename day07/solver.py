@@ -33,12 +33,16 @@ def solve1(data):
     return min(fuel_spendings)
 
 
+def sum_range(n):
+    return n * (n - 1) // 2
+
+
 # PART 2
 @measure_time
 def solve2(data):
     fuel_spendings = []
     for pos in range(min(data), max(data) + 1):
-        fuel_spendings.append(sum(sum(range(abs(crab_pos - pos) + 1)) for crab_pos in data))
+        fuel_spendings.append(sum(sum_range(abs(crab_pos - pos) + 1) for crab_pos in data))
     return min(fuel_spendings)
 
 
