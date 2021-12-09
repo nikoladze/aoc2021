@@ -52,45 +52,19 @@ def find_low_points(data):
 
 # PART 1
 @measure_time
-def solve1_bak(data):
-    risk_sum = 0
-
-    def higher_or_none(height, x, y):
-        try:
-            # this seems not right ... probably doesn't always work?
-            return (data[y][x] >= height) and (height != 9)
-            #return (data[y]e[x] > height)
-        except IndexError:
-            return True
-
-    for y, line in enumerate(data):
-        for x, height in enumerate(line):
-            if higher_or_none(height, x - 1, y) and higher_or_none(height, x + 1, y) and higher_or_none(height, x, y - 1) and higher_or_none(height, x, y + 1):
-                risk_sum += height + 1
-                print(f"\033[1m{height}\033[0m", end="")
-                continue
-            print(height, end="")
-        print("\n", end="")
-    return risk_sum
-
-
-@measure_time
 def solve1(data):
     low_points = find_low_points(data)
     return sum(height + 1 for x, y, height in low_points)
 
-# PART 2
-@measure_time
-def solve2(data):
+
+def find_basins(data):
     low_points = find_low_points(data)
     basins = []
 
     def extend_basin(basin, x, y):
-        print(f"trying to extend {x}, {y}")
         height = data[y][x]
 
         def check_extend(x, y):
-            print(f"checking {x}, {y}")
             if x < 0 or y < 0:
                 return
             try:
@@ -98,7 +72,6 @@ def solve2(data):
                     return
             except IndexError:
                 return
-            print("yep!")
             basin.add((x, y))
             extend_basin(basin, x, y)
 
@@ -108,19 +81,20 @@ def solve2(data):
         check_extend(x, y - 1)
 
     for x, y, height in low_points:
-        print(f"seed: {x}, {y}")
         if any((x, y) in basin for basin in basins):
             # already got that point
-            print("already got that")
             continue
         basin = set()
         basin.add((x, y))
         extend_basin(basin, x, y)
         basins.append(basin)
+    return basins
 
-    print(basins)
-    print(sorted(len(basin) for basin in basins))
 
+# PART 2
+@measure_time
+def solve2(data):
+    basins = find_basins(data)
     return reduce(mul, sorted(len(basin) for basin in basins)[-3:], 1)
 
 
