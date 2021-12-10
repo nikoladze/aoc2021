@@ -26,25 +26,33 @@ def parse(raw_data):
 
 MATCHING_PARENS = {"{": "}", "[": "]", "(": ")", "<": ">"}
 
-ERR = None
-EXP = None
+def check_line(line):
+    err = None
+    exp = None
 
-def check_line(line, pos=0, expected=None):
-    global ERR
-    global EXP
-    if len(line) == 0:
-        EXP = expected
-        raise StopIteration("Done")
-    first = line[0]
-    if first in "([{<":
-        opening = first
-        closing, rest, pos = check_line(line[1:], pos + 1, expected=MATCHING_PARENS[opening])
-        if closing != MATCHING_PARENS[opening]:
-            ERR = closing, pos
-            raise SyntaxError(f"Expected {MATCHING_PARENS[opening]}, but found {closing} instead. Rest: {rest}")
-        return check_line(rest, pos + 1, expected=expected)
-    else:
-        return first, line[1:], pos
+    def check(line, pos=0, expected=None):
+        nonlocal err
+        nonlocal exp
+        if len(line) == 0:
+            exp = expected
+            raise StopIteration("Done")
+        first = line[0]
+        if first in "([{<":
+            opening = first
+            closing, rest, pos = check(line[1:], pos + 1, expected=MATCHING_PARENS[opening])
+            if closing != MATCHING_PARENS[opening]:
+                err = closing, pos
+                raise SyntaxError(f"Expected {MATCHING_PARENS[opening]}, but found {closing} instead. Rest: {rest}")
+            return check(rest, pos + 1, expected=expected)
+        else:
+            return first, line[1:], pos
+
+    try:
+        check(line)
+    except StopIteration:
+        return exp
+    except SyntaxError:
+        return err
 
 
 ERR_SCORES = {
@@ -60,29 +68,25 @@ ERR_SCORES = {
 def solve1(data):
     score = 0
     for line in data:
-        print(line)
-        try:
-            check_line(line)
-        except StopIteration:
-            print(EXP)
-        except SyntaxError as e:
-            print(e)
-            score += ERR_SCORES[ERR[0]]
+        res = check_line(line)
+        if res is None:
+            continue
+        if isinstance(res, tuple):
+            closing, pos = res
+            score += ERR_SCORES[closing]
+            continue
     return score
 
 
 def complete(line):
     closing_sequence = []
     while True:
-        try:
-            check_line(line + "".join(closing_sequence))
-        except StopIteration:
-            if EXP is not None:
-                closing_sequence.append(EXP)
-            else:
-                return "".join(closing_sequence)
-        except SyntaxError as e:
-            return
+        res = check_line(line + "".join(closing_sequence))
+        if res is None or isinstance(res, tuple):
+            return closing_sequence
+        if isinstance(res, str):
+            closing_sequence.append(res)
+
 
 COMPLETION_ERR_SCORES = {
     ")": 1,
@@ -99,11 +103,12 @@ def solve2(data):
     for line in data:
         closing_sequence = complete(line)
         score = 0
-        if closing_sequence is not None:
+        if len(closing_sequence) > 0:
             for c in closing_sequence:
                 score = score * 5 + COMPLETION_ERR_SCORES[c]
             scores.append(score)
     return sorted(scores)[len(scores) // 2]
+
 
 if __name__ == "__main__":
     import sys
