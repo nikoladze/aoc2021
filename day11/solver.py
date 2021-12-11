@@ -77,7 +77,7 @@ class OctopusAutomaton:
 
     def __repr__(self):
         return "\n".join(
-            "".join(str(i) if i != 0 else f"\033[1m{i}\033[0m" for x, i in enumerate(row))
+            "".join(str(i) if i != 0 else "█" for x, i in enumerate(row))
             for y, row in enumerate(self.grid)
         )
 
