@@ -30,8 +30,9 @@ def possible_paths_from(current_path, edges_from, stopping_condition):
     if src == "end":
         return [current_path]
     paths = []
+    current_path_smallcaves = [x for x in current_path if x.islower()]
     for dst in edges_from[src]:
-        if stopping_condition(dst, current_path):
+        if stopping_condition(dst, current_path_smallcaves):
             continue
         for path in possible_paths_from(current_path + [dst], edges_from, stopping_condition):
             if len(path) == 0:
@@ -57,7 +58,7 @@ def solve1(data):
             ["start"],
             get_edges_from(data),
             # visit small caves at most once
-            lambda dst, current_path: dst.islower() and dst in current_path,
+            lambda dst, current_path_smallcaves: dst in current_path_smallcaves,
         )
     )
 
@@ -65,22 +66,24 @@ def solve1(data):
 # PART 2
 @measure_time
 def solve2(data):
+
+    def stopping_condition(dst, current_path_smallcaves):
+        if dst == "start":
+            return True
+        if not dst.islower():
+            return False
+        if dst not in current_path_smallcaves:
+            return False
+        for other in current_path_smallcaves:
+            if current_path_smallcaves.count(other) >= 2:
+                return True
+        return False
+
     return len(
         possible_paths_from(
             ["start"],
             get_edges_from(data),
-            lambda dst, current_path: (
-                # don't go back to start
-                dst == "start"
-                # visit at most one small cave twice
-                or (
-                    dst.islower() and dst in current_path
-                    and any(
-                        current_path.count(other) >= 2
-                        for other in set(current_path) if other.islower()
-                    )
-                )
-            ),
+            stopping_condition,
         )
     )
 
