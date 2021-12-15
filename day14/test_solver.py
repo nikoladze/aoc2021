@@ -27,16 +27,15 @@ def parsed_data():
 
 def test_parse():
     data = parse(TESTDATA)
-    # asserts go here
 
 
 # PART 1
 def test_solve1(parsed_data):
     solution = solve1(parsed_data)
-    # asserts go here
+    assert solution == 1588
 
 
 # PART 2
 def test_solve2(parsed_data):
     solution = solve2(parsed_data)
-    # asserts go here
+    assert solution == 2188189693529

@@ -53,7 +53,7 @@ def solve1(data, steps=10):
 def update_counts(pair_counts, element_counts, rules):
     new_pair_counts = pair_counts.copy()
     element_counts = element_counts.copy()
-    for rule_key, insertion in rules.items():
+    for rule_key, insertion in rules:
         left, right = rule_key
         new_left = left + insertion
         new_right = insertion + right
@@ -68,13 +68,12 @@ def update_counts(pair_counts, element_counts, rules):
 @measure_time
 def solve2(data, steps=40):
     template, rules = data
-    rules = dict(rules)
     pair_counts = defaultdict(int)
     element_counts = defaultdict(int)
     for left, right in zip(template, template[1:]):
         pair_counts[left + right] += 1
-    for element in set(template):
-        element_counts[element] += template.count(element)
+    for element in template:
+        element_counts[element] += 1
     for i in range(steps):
         pair_counts, element_counts = update_counts(pair_counts, element_counts, rules)
     return max(element_counts.values()) - min(element_counts.values())
