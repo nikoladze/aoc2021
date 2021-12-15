@@ -24,34 +24,6 @@ def parse(raw_data):
     return [[int(i) for i in line] for line in raw_data.split("\n")]
 
 
-
-def min_risk_from(risk, trace, x, y, grid):
-
-    def _min_risk_from(risk, trace, x, y):
-        if x == len(grid[0]) - 1 and y == len(grid) - 1:
-            return trace + [(x, y)], risk + grid[y][x]
-
-        def try_min(x, y):
-            if (x, y) in trace or x < 0 or y < 0:
-                return None
-            try:
-                return _min_risk_from(risk, trace, x, y)
-            except IndexError:
-                return None
-
-        left = try_min(x - 1, y)
-        right = try_min(x + 1, y)
-        top = try_min(x, y - 1)
-        bottom = try_min(x, y + 1)
-
-        new_trace, min_risk = min(
-            [x for x in [left, right, top, bottom] if x is not None], key=lambda x: x[1]
-        )
-        return trace + new_trace, min_risk
-
-    return _min_risk_from(trace, x, y)
-
-
 def get_graph(grid):
     import networkx as nx
     G = nx.DiGraph()
@@ -74,30 +46,17 @@ def get_graph(grid):
     return G
 
 
+def shortest_path(grid):
+    import networkx as nx
+    graph = get_graph(grid)
+    ymax = len(grid) - 1
+    return nx.dijkstra_path_length(graph, (0, 0), (ymax, ymax))
+
+
 # PART 1
 @measure_time
 def solve1(data):
-    #trace, res = min_risk_from([(0, 0)], 0, 0, data)
-    #print(trace)
-    #return res
-    import networkx as nx
-    graph = get_graph(data)
-    ymax = len(data) - 1
-    #path = nx.dijkstra_path(graph, (0, 0), (ymax, ymax))
-    path = nx.shortest_path(graph, (0, 0), (ymax, ymax), weight="weight")
-    print("")
-    for y in range(len(data)):
-        for x in range(len(data[0])):
-            if (x, y) in path:
-                print("#", end="")
-            else:
-                print(data[y][x], end="")
-        print("\n", end="")
-    risk = 0
-    for x, y in path[1:]:
-        risk += data[y][x]
-    #return risk
-    return nx.dijkstra_path_length(graph, (0, 0), (ymax, ymax))
+    return shortest_path(data)
 
 
 def fill_full_grid(grid):
@@ -121,24 +80,7 @@ def fill_full_grid(grid):
 # PART 2
 @measure_time
 def solve2(data):
-    import networkx as nx
-    new_grid = fill_full_grid(data)
-    graph = get_graph(new_grid)
-    ymax = len(new_grid) - 1
-    #path = nx.dijkstra_path(graph, (0, 0), (ymax, ymax))
-    path = nx.shortest_path(graph, (0, 0), (ymax, ymax), weight="weight")
-    # print("")
-    # for y in range(len(data)):
-    #     for x in range(len(data[0])):
-    #         if (x, y) in path:
-    #             print("#", end="")
-    #         else:
-    #             print(data[y][x], end="")
-    #     print("\n", end="")
-    risk = 0
-    for x, y in path[1:]:
-        risk += new_grid[y][x]
-    return risk
+    return shortest_path(fill_full_grid(data))
 
 
 if __name__ == "__main__":
