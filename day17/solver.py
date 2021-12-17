@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from functools import wraps
+from functools import wraps, cache
 from datetime import datetime
 
 
@@ -29,7 +29,7 @@ def parse(raw_data):
     return x_range, y_range
 
 
-def simulate(vx, vy, steps):
+def simulate(vx, vy, x_range, y_range, steps):
     x, y = (0, 0)
     path = []
     for i in range(steps):
@@ -39,46 +39,39 @@ def simulate(vx, vy, steps):
             vx += [1, -1][vx > 0]
         vy -= 1
         path.append((x, y))
-    return path
+        if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1]:
+            return path
+    return None
+
+
+@cache
+def search(x_range, y_range):
+    valid_params = []
+    for vx in range(300):
+        for vy in range(-100, 100):
+            path = simulate(vx, vy, x_range, y_range, 200)
+            if path is not None:
+                steps_first_hit = len(path)
+                highest_point = max(y for x, y in path)
+                valid_params.append((vx, vy, steps_first_hit, highest_point))
+    for i, label in enumerate(["vx", "vy", "steps"]):
+        print(
+            f"{'Range for ' + label:<15}: {min(p[i] for p in valid_params):>4} - {max(p[i] for p in valid_params):>4}"
+        )
+    print("")
+    return valid_params
 
 
 # PART 1
 @measure_time
 def solve1(data):
-    x_range, y_range = data
-    print(x_range, y_range)
-    highest_y_values = []
-    for vx in range(150):
-        for vy in range(-100, 100):
-            path = simulate(vx, vy, 200)
-            if any(
-                x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1]
-                for x, y in path
-            ):
-                highest_y_values.append(max((((vx, vy), y) for x, y in path), key=lambda x: x[1]))
-    return max(highest_y_values, key=lambda x: x[1])
+    return max(search(*data), key=lambda x: x[-1])[-1]
 
-debug = []
 
 # PART 2
 @measure_time
 def solve2(data):
-    x_range, y_range = data
-    params = []
-    for vx in range(400):
-        for vy in range(-200, 100):
-            path = simulate(vx, vy, 200)
-            in_target = [
-                x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1]
-                for x, y in path
-            ]
-            if any(in_target):
-                steps_first_hit = min(i for i, hit in enumerate(in_target) if hit)
-                params.append((vx, vy, steps_first_hit))
-    for i, label in enumerate(["vx", "vy", "steps"]):
-        print(f"Range for {label}: {min(p[i] for p in params)} - {max(p[i] for p in params)}")
-    debug.append(params)
-    return len(params)
+    return len(search(*data))
 
 
 if __name__ == "__main__":
