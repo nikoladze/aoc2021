@@ -34,10 +34,12 @@ def find_exploding_pair(tokens):
     for i, t in enumerate(tokens):
         if t == "[":
             level += 1
+            continue
         if t == "]":
             level -= 1
-        if level > 4 and tokens[i + 1].isnumeric() and tokens[i + 2].isnumeric():
-            return i
+            continue
+        if level > 4 and tokens[i].isnumeric() and tokens[i + 1].isnumeric():
+            return i - 1
 
 
 def find_large_number(tokens):
@@ -68,6 +70,7 @@ def split_number_at(tokens, i):
     tokens.insert(i, str(math.ceil(n / 2)))
     tokens.insert(i, str(math.floor(n / 2)))
     tokens.insert(i, "[")
+
 
 
 def reduce_snailnum(tokens):
@@ -128,7 +131,6 @@ def solve2(data):
         for n2 in data:
             magnitudes.append(int(reduce_magnitude(add_snailnums(n1, n2))[0]))
     return max(magnitudes)
-
 
 
 if __name__ == "__main__":
