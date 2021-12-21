@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from functools import wraps
+from functools import wraps, cache
 from datetime import datetime
 
 
@@ -68,7 +68,8 @@ POSSIBILITIES_FOR = {
 }
 
 
-def number_of_games_win(scores, pos, player, level=0):
+@cache
+def number_of_games_win(scores, pos, player):
     other_player = (player + 1) % 2
     if scores[other_player] >= 21:
         n_wins = [0, 0]
@@ -76,21 +77,17 @@ def number_of_games_win(scores, pos, player, level=0):
         return n_wins
     n_wins = [0, 0]
     for x, n_possibilities in POSSIBILITIES_FOR.items():
-        new_scores = scores[:]
-        new_pos = pos[:]
+        new_scores = list(scores)
+        new_pos = list(pos)
         new_pos[player] = (pos[player] - 1 + x) % 10 + 1
         new_scores[player] += new_pos[player]
         n_wins_0, n_wins_1 = number_of_games_win(
-            new_scores,
-            new_pos,
-            #(player + 1) % 2,
+            tuple(new_scores),
+            tuple(new_pos),
             other_player,
-            level=level + 1,
         )
         n_wins[0] += n_possibilities * n_wins_0
         n_wins[1] += n_possibilities * n_wins_1
-        if level == 0:
-            print(x, n_wins)
     return n_wins
 
 
@@ -98,8 +95,8 @@ def number_of_games_win(scores, pos, player, level=0):
 @measure_time
 def solve2(data):
     start1, start2 = data
-    scores = [0, 0]
-    pos = [start1, start2]
+    scores = (0, 0)
+    pos = (start1, start2)
     n_wins = number_of_games_win(scores, pos, 0)
     return max(n_wins)
 
