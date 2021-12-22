@@ -76,23 +76,22 @@ def digitize(coord_range, bin_edges):
 def solve2(data):
     ex, ey, ez = find_bin_edges(data)
     hist = np.zeros((len(ex) - 1, len(ey) - 1, len(ez) - 1), dtype=np.uint8)
-    from tqdm.auto import tqdm
-    for onoff, xr, yr, zr in tqdm(data):
-        for ix, iy, iz in product(
-                digitize(xr, ex),
-                digitize(yr, ey),
-                digitize(zr, ez),
-        ):
-            hist[ix, iy, iz] = True if onoff == "on" else False
+    for onoff, xr, yr, zr in data:
+        ix = digitize(xr, ex)
+        iy = digitize(yr, ey)
+        iz = digitize(zr, ez)
+        hist[min(ix) : max(ix) + 1, min(iy) : max(iy) + 1, min(iz) : max(iz) + 1] = (
+            True if onoff == "on" else False
+        )
     ex, ey, ez = (np.array(e) for e in (ex, ey, ez))
     wx, wy, wz = (e[1:] - e[:-1] for e in (ex, ey, ez))
     n_on = 0
-    # iterate first dimension to save memory 🙈
+    # iterate over first dimension to save memory 🙈
     for i in range(len(wx)):
-        wxx, wyy, wzz = np.meshgrid(wx[i], wy, wz, indexing='ij', sparse=True)
-        n_on += (hist[i] * wxx * wyy * wzz).sum()
+        wxx, wyy, wzz = np.meshgrid(wx[i], wy, wz, indexing="ij", sparse=True)
+        bin_volumes = wxx * wyy * wzz
+        n_on += (hist[i] * bin_volumes).sum()
     return n_on
-
 
 if __name__ == "__main__":
     import sys
