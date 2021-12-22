@@ -74,39 +74,24 @@ def digitize(coord_range, bin_edges):
 # PART 2
 @measure_time
 def solve2(data):
-    #cube_bin_indices = defaultdict(bool)
     ex, ey, ez = find_bin_edges(data)
     hist = np.zeros((len(ex) - 1, len(ey) - 1, len(ez) - 1), dtype=np.uint8)
-    # volumen of each bin will be given by abs(ex[i + 1] - ex[i]) * abs(ey[j + 1] - ey[j]) ...
     from tqdm.auto import tqdm
     for onoff, xr, yr, zr in tqdm(data):
-        # cuboids[(xr, yr, zr)] = True if onoff == "on" else False
-        # n_on += abs(xr[1] - xr[0]) * abs(yr[1] - yr[0]) * abs(zr[1] - zr[0])
-        # bin indices
         for ix, iy, iz in product(
                 digitize(xr, ex),
                 digitize(yr, ey),
                 digitize(zr, ez),
         ):
-            #cube_bin_indices[(ix, iy, iz)] = True if onoff == "on" else False
             hist[ix, iy, iz] = True if onoff == "on" else False
-        #print(len(cube_bin_indices))
-    # n_on = 0
+    ex, ey, ez = (np.array(e) for e in (ex, ey, ez))
+    wx, wy, wz = (e[1:] - e[:-1] for e in (ex, ey, ez))
     n_on = 0
-    for ix, iy, iz in product(
-            range(hist.shape[0]),
-            range(hist.shape[1]),
-            range(hist.shape[2]),
-    ):
-        if not hist[ix, iy, iz]:
-            continue
-        n_on += abs(ex[ix + 1] - ex[ix]) * abs(ey[iy + 1] - ey[iy]) * abs(ez[iz + 1] - ez[iz])
-    # for (ix, iy, iz), is_on in cube_bin_indices.items():
-    #     if not is_on:
-    #         continue
-    #     n_on += abs(ex[ix + 1] - ex[ix]) * abs(ey[iy + 1] - ey[iy]) * abs(ez[iz + 1] - ez[iz])
+    # iterate first dimension to save memory 🙈
+    for i in range(len(wx)):
+        wxx, wyy, wzz = np.meshgrid(wx[i], wy, wz, indexing='ij', sparse=True)
+        n_on += (hist[i] * wxx * wyy * wzz).sum()
     return n_on
-    # return hist.sum()
 
 
 if __name__ == "__main__":
