@@ -27,6 +27,8 @@ def parse(raw_data):
     return out
 
 
+#global_history = set()
+
 class AmphiGame:
     def __init__(self, data):
         self.map = data
@@ -37,6 +39,7 @@ class AmphiGame:
         # self.hallway = ["."] * 11
         # self.entrances = [2, 4, 6, 8]
         # self.map = [self.hallway] + self.rooms
+        self._highlight = None
 
     @property
     def occupied(self):
@@ -59,16 +62,47 @@ class AmphiGame:
 
         # if in hallway i can only go to final destination
         # (and the other one also has to be there)
-        if y2 not in (2, 3):
+        # if y2 not in (2, 3):
+        #     val = self.map[y1][x1]
+        #     if self.destinations[val] != x2:
+        #         return False
+        #     if self.map[[y for y in (2, 3) if not y == y2][0]][x2] != val:
+        #         return False
+
+        return True
+
+    def possible_move(self, src, dst):
+        x1, y1 = src
+        x2, y2 = dst
+
+        # moving to a spot in front of a room is not allowed
+        if y2 ==1 and x2 in (3, 5, 7, 9):
+            return False
+
+        if y1 in (2, 3):
+            val = self.map[y1][x1]
+            # if we are in final destination and the other field is also done, we stay there
+            if self.destinations[val] == x2 and self.map[[y for y in (2, 3) if not y == y2][0]][x2] == val:
+                return False
+            # otherwise moving from side room to hallway is fine
+            if y2 == 1:
+                return True
+
+        # if in hallway i can only go to final destination
+        # (and the other one also has to be there or empty)
+        if y1 == 1 and y2 in (2, 3):
             val = self.map[y1][x1]
             if self.destinations[val] != x2:
                 return False
-            if self.map[[y for y in (2, 3) if not y == y2][0]][x2] != val:
+            if self.map[[y for y in (2, 3) if not y == y2][0]][x2] not in (val, "."):
                 return False
 
         return True
 
     def possible_paths_from(self, current_path):
+        """
+        TODO: just check start and endpoints, then have energy function
+        """
         src = current_path[-1]
         paths = []
         for step in [(-1, 0), (0, -1), (0, 1), (1, 0)]:
@@ -93,66 +127,116 @@ class AmphiGame:
             (5, 3, "B"),
             (7, 2, "C"),
             (7, 3, "C"),
+            (9, 2, "D"),
+            (9, 3, "D"),
         ]:
             if self.map[y][x] != expected:
                 return False
         return True
 
-    # def find_min_energy(self):
-    #     energies = []
-    #     for src in self.occupied:
-    #         c = self.map[src[1]][src[0]]
-    #         for path in self.possible_paths_from([src]):
-    #             energy = 0
-    #             for pos in path[1:]:
-    #                 energy += self.energies[c]
-    #                 game = AmphiGame([line[:] for line in self.map])
-    #                 print(src, pos)
-    #                 game.map[src[1]][src[0]] = "."
-    #                 game.map[pos[1]][pos[0]] = c
-    #                 print(game)
-    #                 if game.is_done:
-    #                     energies.append(energy)
-    #                     continue
-    #                 min_energy_next = game.find_min_energy()
-    #                 energies.append(energy + min_energy_next)
-    #     return min(energies)
+    @property
+    def map_key(self):
+        return tuple(tuple(line) for line in self.map)
 
-
-    def find_min_energy(self):
+    def find_min_energy(self, energy_so_far=0, min_energy=None, history=None):
+        if history is None:
+            history = set([self.map_key])
+        #energies = []
         for src in self.occupied:
-            for step in [(-1, 0), (0, -1), (0, 1), (1, 0)]:
-                dst = (src[0] + step[0], src[1] + step[1])
-            if not self.possible_step(src, dst):
-                continue
-            if dst in current_path:
-                # don't go back
-                continue
-            for path in self.possible_paths_from(current_path + [dst]):
-                paths.append(path)
-        src = current_path[-1]
-        paths = []
-        for step in [(-1, 0), (0, -1), (0, 1), (1, 0)]:
-            dst = (src[0] + step[0], src[1] + step[1])
-            if not self.possible_step(src, dst):
-                continue
-            if dst in current_path:
-                # don't go back
-                continue
-            for path in self.possible_paths_from(current_path + [dst]):
-                paths.append(path)
-        if len(paths) == 0:
-            return [current_path]
-        return paths
+            c = self.map[src[1]][src[0]]
+            #self.print_highlight(src)
+            for path in self.possible_paths_from([src]):
+                energy = energy_so_far
+                for pos in path[1:]:
+                    energy += self.energies[c]
+                    if min_energy is not None and energy >= min_energy:
+                        continue
+                    if not self.possible_move(src, pos):
+                        continue
+                    game = AmphiGame([line[:] for line in self.map])
+                    game.map[src[1]][src[0]] = "."
+                    game.map[pos[1]][pos[0]] = c
+                    if game.map_key in history:
+                        continue
+                    # if game.map_key in global_history:
+                    #     breakpoint()
+                    # if game.map_key in global_history:
+                    #     continue
+                    #global_history.add(game.map_key)
+                    #print(len(global_history))
+                    #breakpoint()
+                    if game.is_done:
+                        #breakpoint()
+                        print("Done!")
+                        print(energy)
+                        # energies.append(energy)
+                        # continue
+                        min_energy_next = energy
+                    else:
+                        min_energy_next = game.find_min_energy(
+                            energy_so_far=energy,
+                            min_energy=min_energy,
+                            history=history | set([game.map_key])
+                        )
+                    if min_energy_next is None:
+                        continue
+                    if min_energy is None or min_energy_next < min_energy:
+                        min_energy = min_energy_next
+                    # if min_energy_next is None:
+                    #     continue
+                    # energies.append(min_energy_next)
+        # if len(energies) == 0:
+        #     return None
+        # return min(energies)
+        return min_energy
+
+
+    # def find_min_energy(self):
+    #     for src in self.occupied:
+    #         for step in [(-1, 0), (0, -1), (0, 1), (1, 0)]:
+    #             dst = (src[0] + step[0], src[1] + step[1])
+    #         if not self.possible_step(src, dst):
+    #             continue
+    #         if dst in current_path:
+    #             # don't go back
+    #             continue
+    #         for path in self.possible_paths_from(current_path + [dst]):
+    #             paths.append(path)
+    #     src = current_path[-1]
+    #     paths = []
+    #     for step in [(-1, 0), (0, -1), (0, 1), (1, 0)]:
+    #         dst = (src[0] + step[0], src[1] + step[1])
+    #         if not self.possible_step(src, dst):
+    #             continue
+    #         if dst in current_path:
+    #             # don't go back
+    #             continue
+    #         for path in self.possible_paths_from(current_path + [dst]):
+    #             paths.append(path)
+    #     if len(paths) == 0:
+    #         return [current_path]
+    #     return paths
 
     def __repr__(self):
-        return "\n".join("".join(line) for line in self.map)
+        return "\n".join(
+            "".join(
+                v if (x, y) != self._highlight else f"\033[;1m{v}\033[0m"
+                for x, v in enumerate(line)
+            )
+            for y, line in enumerate(self.map)
+        )
+
+    def print_highlight(self, pos):
+        self._highlight = pos
+        print(self)
+        self._highlight = None
 
 
 # PART 1
 @measure_time
 def solve1(data):
-    pass
+    game = AmphiGame(data)
+    return game.find_min_energy()
 
 
 # PART 2
@@ -163,6 +247,7 @@ def solve2(data):
 
 if __name__ == "__main__":
     import sys
+    sys.setrecursionlimit(10000)
 
     data = parse(open("input.txt").read().strip())
     print("Part 1: {}".format(solve1(data)))
@@ -175,4 +260,8 @@ if __name__ == "__main__":
     print("total   {}s".format(sum(t for _, t in times)))
 
     # interactive testing
-    game = AmphiGame(data)
+    #game = AmphiGame(data)
+
+    # interactive testing
+    from test_solver import TESTDATA
+    game = AmphiGame(parse(TESTDATA.strip()))

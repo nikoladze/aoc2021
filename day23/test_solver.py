@@ -2,11 +2,16 @@ import pytest
 from solver import parse, solve1, solve2
 
 TESTDATA = """
+#############
+#...........#
+###B#C#B#D###
+  #A#D#C#A#
+  #########
 """
 
 @pytest.fixture
 def parsed_data():
-    return parse(TESTDATA)
+    return parse(TESTDATA.strip())
 
 
 def test_parse():
@@ -17,7 +22,7 @@ def test_parse():
 # PART 1
 def test_solve1(parsed_data):
     solution = solve1(parsed_data)
-    # asserts go here
+    assert solution == 12521
 
 
 # PART 2
