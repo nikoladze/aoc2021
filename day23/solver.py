@@ -161,13 +161,14 @@ class AmphiGame:
                 energy = energy_so_far + self.energies[c] * distance
                 if min_energy is not None and energy >= min_energy:
                     continue
-                game = AmphiGame([line[:] for line in self.map])
+                game = type(self)([line[:] for line in self.map])
                 game.map[src[1]][src[0]] = "."
                 game.map[pos[1]][pos[0]] = c
                 if game.map_key in min_energy_for_map and min_energy_for_map[game.map_key] <= energy:
                     continue
                 else:
                     min_energy_for_map[game.map_key] = energy
+                #game.print_highlight(pos)
                 if game.is_done:
                     print("Done!")
                     print(energy)
@@ -208,10 +209,91 @@ def solve1(data):
     return game.find_min_energy()
 
 
+class UnfoldedAmphiGame(AmphiGame):
+    @classmethod
+    def from_folded(cls, data):
+        new = cls(data)
+        new.map.insert(3, list("  #D#B#A#C#"))
+        new.map.insert(3, list("  #D#C#B#A#"))
+        return new
+
+    @property
+    def is_done(self):
+        for x, y, expected in [
+            (3, 2, "A"),
+            (3, 3, "A"),
+            (3, 4, "A"),
+            (3, 5, "A"),
+            (5, 2, "B"),
+            (5, 3, "B"),
+            (5, 4, "B"),
+            (5, 5, "B"),
+            (7, 2, "C"),
+            (7, 3, "C"),
+            (7, 4, "C"),
+            (7, 5, "C"),
+            (9, 2, "D"),
+            (9, 3, "D"),
+            (9, 4, "D"),
+            (9, 5, "D"),
+        ]:
+            if self.map[y][x] != expected:
+                return False
+        return True
+
+    def possible_move(self, src, dst):
+        x1, y1 = src
+        x2, y2 = dst
+
+        # moving to a spot in front of a room is not allowed
+        if y2 == 1 and x2 in (3, 5, 7, 9):
+            return False
+
+        # can't go from hallway to hallway
+        if y1 == 1 and y2 == 1:
+            return False
+
+        # we have to go to the hallway if we are in the room
+        if y1 in (2, 3, 4, 5)  and y2 != 1:
+            return False
+
+        # if that room is done, we stay there
+        if y1 in (2, 3, 4, 5):
+            val = self.map[y1][x1]
+            if self.destinations[val] == x1:
+                if all(self.map[y][x1] == val for y in (2, 3, 4, 5)):
+                    return False
+        # .... maybe we can also check for this:
+        #.#
+        #A#
+        #A#
+
+        # if in hallway i can only go to final destination
+        # (and the others also have to be there or empty)
+        if y1 == 1 and y2 in (2, 3, 4, 5):
+            val = self.map[y1][x1]
+            if self.destinations[val] != x2:
+                return False
+            for y in (2, 3, 4, 5):
+                val_other = self.map[y][x2]
+                if y > y2 and val_other == ".":
+                    # we want to go to the lowest position
+                    return False
+                if val_other not in [".", val]:
+                    # all other positions have to be finished as well (or empty)
+                    return False
+
+        # if no contiguous path of free fields between src and dst we can't do this
+        if self.possible_path_distance(src, dst) is None:
+            return False
+
+        return True
+
 # PART 2
 @measure_time
 def solve2(data):
-    pass
+    game = UnfoldedAmphiGame.from_folded(data)
+    return game.find_min_energy()
 
 
 if __name__ == "__main__":
@@ -226,10 +308,3 @@ if __name__ == "__main__":
         print(f"{func:8}{time}s")
     print("----------------")
     print("total   {}s".format(sum(t for _, t in times)))
-
-    # interactive testing
-    # game = AmphiGame(data)
-
-    # interactive testing
-    # from test_solver import TESTDATA
-    # game = AmphiGame(parse(TESTDATA.strip()))
