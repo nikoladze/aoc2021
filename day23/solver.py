@@ -27,6 +27,8 @@ def parse(raw_data):
     return out
 
 
+min_energy_for_map = {}
+
 class AmphiGame:
     def __init__(self, data):
         self.map = data
@@ -170,6 +172,10 @@ class AmphiGame:
                 game = AmphiGame([line[:] for line in self.map])
                 game.map[src[1]][src[0]] = "."
                 game.map[pos[1]][pos[0]] = c
+                if game.map_key in min_energy_for_map and min_energy_for_map[game.map_key] <= energy:
+                    continue
+                else:
+                    min_energy_for_map[game.map_key] = energy
                 if game.map_key in history:
                     continue
                 if game.is_done:
