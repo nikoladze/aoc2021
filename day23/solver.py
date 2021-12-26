@@ -26,9 +26,6 @@ def parse(raw_data):
         out.append(list(line))
     return out
 
-
-min_energy_for_map = {}
-
 class AmphiGame:
     def __init__(self, data):
         self.map = data
@@ -63,11 +60,6 @@ class AmphiGame:
     def possible_move(self, src, dst):
         x1, y1 = src
         x2, y2 = dst
-
-        # spot free/visitable?
-        if self.map[y2][x2] != ".":
-            assert False ### TODO
-            return False
 
         # moving to a spot in front of a room is not allowed
         if y2 == 1 and x2 in (3, 5, 7, 9):
@@ -146,9 +138,9 @@ class AmphiGame:
     def map_key(self):
         return tuple(tuple(line) for line in self.map)
 
-    def find_min_energy(self, energy_so_far=0, min_energy=None, history=None, level=0):
-        if history is None:
-            history = set([self.map_key])
+    def find_min_energy(self, energy_so_far=0, min_energy=None, min_energy_for_map=None, level=0):
+        if min_energy_for_map is None:
+            min_energy_for_map = {}
         if level == 0:
             iter_occ = tqdm(self.occupied)
         else:
@@ -176,8 +168,6 @@ class AmphiGame:
                     continue
                 else:
                     min_energy_for_map[game.map_key] = energy
-                if game.map_key in history:
-                    continue
                 if game.is_done:
                     print("Done!")
                     print(energy)
@@ -186,7 +176,7 @@ class AmphiGame:
                     min_energy_next = game.find_min_energy(
                         energy_so_far=energy,
                         min_energy=min_energy,
-                        history=history | set([game.map_key]),
+                        min_energy_for_map=min_energy_for_map,
                         level=level + 1,
                     )
                 if min_energy_next is None:
