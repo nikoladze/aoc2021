@@ -2,7 +2,7 @@
 
 from functools import wraps
 from datetime import datetime
-
+from tqdm import tqdm
 
 times = []
 
@@ -144,12 +144,23 @@ class AmphiGame:
     def map_key(self):
         return tuple(tuple(line) for line in self.map)
 
-    def find_min_energy(self, energy_so_far=0, min_energy=None, history=None, indent=""):
+    def find_min_energy(self, energy_so_far=0, min_energy=None, history=None, level=0):
         if history is None:
             history = set([self.map_key])
-        for src in self.occupied:
+        if level == 0:
+            iter_occ = tqdm(self.occupied)
+        else:
+            iter_occ = self.occupied
+        for src in iter_occ:
             c = self.map[src[1]][src[0]]
-            for pos in self.unoccupied:
+            if min_energy is not None and energy_so_far + self.energies[c] >= min_energy:
+                # need to do at least one step ...
+                continue
+            if level == 0:
+                iter_unocc = tqdm(self.unoccupied)
+            else:
+                iter_unocc = self.unoccupied
+            for pos in iter_unocc:
                 if not self.possible_move(src, pos):
                     continue
                 distance = self.possible_path_distance(src, pos)
@@ -170,7 +181,7 @@ class AmphiGame:
                         energy_so_far=energy,
                         min_energy=min_energy,
                         history=history | set([game.map_key]),
-                        indent=indent + " "
+                        level=level + 1,
                     )
                 if min_energy_next is None:
                     continue
