@@ -1,8 +1,18 @@
 import pytest
-from solver import parse, solve1, solve2
+from solver import parse, solve1, solve2, run
 
-TESTDATA = """
-"""
+TESTDATA = """inp w
+add z w
+mod z 2
+div w 2
+add y w
+mod y 2
+div w 2
+add x w
+mod x 2
+div w 2
+mod w 2"""
+
 
 @pytest.fixture
 def parsed_data():
@@ -14,13 +24,9 @@ def test_parse():
     # asserts go here
 
 
-# PART 1
-def test_solve1(parsed_data):
-    solution = solve1(parsed_data)
-    # asserts go here
-
-
-# PART 2
-def test_solve2(parsed_data):
-    solution = solve2(parsed_data)
-    # asserts go here
+def test_binary_convert(parsed_data):
+    res = run(parsed_data, [27])
+    assert res["z"] == 1
+    assert res["y"] == 1
+    assert res["x"] == 0
+    assert res["w"] == 1

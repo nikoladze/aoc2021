@@ -32,6 +32,12 @@ def parse(raw_data):
 
 
 class HaltAndCatchFire(Exception):
+    """
+    (Program authors should be especially cautious; attempting to execute div
+    with b=0 or attempting to execute mod with a<0 or b<=0 will cause the
+    program to crash and might even damage the ALU. These operations are never
+    intended in any serious ALU program.)
+    """
     pass
 
 
@@ -57,8 +63,6 @@ def run(data, input_digits, z_start=None, verbose=False):
         elif ins == "div":
             if b == 0:
                 raise HaltAndCatchFire("Division by zero")
-            # which one is it??
-            #variables[a] = int(variables[a] / b)
             variables[a] = variables[a] // b
         elif ins == "mod":
             if variables[a] < 0 or b <= 0:
@@ -68,86 +72,6 @@ def run(data, input_digits, z_start=None, verbose=False):
             variables[a] = int(variables[a] == b)
         if verbose:
             print(line, variables)
-    return variables
-
-
-class Node:
-    def __init__(self, name):
-        self.name = name
-
-    def eval(self):
-        pass
-
-    def __repr__(self):
-        return self.name
-
-class Placeholder(Node):
-    def __init__(self, name, vars):
-        self.name = name
-        self.vars = vars
-
-    def eval(self):
-        return self.vars[self.name]
-
-
-class Value(Node):
-    def __init__(self, v):
-        self.name = str(v)
-        self.v = v
-
-    def eval(self):
-        return self.v
-
-    def __repr__(self):
-        return str(self.v)
-
-
-class Subtract(Node):
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
-        self.name = None
-
-    def eval(self):
-        return self.a.eval() - self.b.eval()
-
-    def __repr__(self):
-        return f"({self.a}) - ({self.b})"
-
-
-class Divide(Node):
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
-        self.name = None
-
-    def eval(self):
-        return self.a.eval() // self.b.eval()
-
-    def __repr__(self):
-        return f"({self.a}) / ({self.b})"
-
-
-def build_reverse_graph(data):
-    variables = {"z": Value(0)}
-    for line in data[::-1]:
-        ins = line[0]
-        if len(line) == 2:
-            var = line[1]
-        if len(line) == 3:
-            varname = line[1]
-            var = Placeholder(name=varname, vars=variables)
-            val = line[2]
-            try:
-                val = int(val)
-                val = Value(val)
-            except ValueError:
-                val = Placeholder(name=val, vars=variables)
-        if ins == "add":
-            variables[varname] = Subtract(var, val)
-        if ins == "mul":
-            variables[varname] = Divide(var, val)
-            break
     return variables
 
 
@@ -210,59 +134,64 @@ def calculate_z0_options(block, z1, w):
                 options.append(int(z_test))
     return options
 
+
 @cache
-def find_possible_combinations(block, z_expected):
+def find_possible_combinations(block, z_expected, iterate_reversed=True):
     combinations = []
-    for i in range(9, 0, -1):
+    if iterate_reversed:
+        i_range = range(9, 0, -1)
+    else:
+        i_range = range(1, 10)
+    for i in i_range:
         for z_start in calculate_z0_options(block, z_expected, i):
             combinations.append((i, z_start))
     return combinations
-    #     for z_start in range(max_iter):
-    #         res = run(block, [i], z_start=z_start)
-    #         if res["z"] == z_expected:
-    #             combinations.append((i, z_start))
-    # return combinations
+
+
+def find_valid_number(z_expected, rev_input_blocks, largest=True):
+    if len(rev_input_blocks) == 0:
+        return []
+    if largest:
+        iterate_reversed = True
+    else:
+        iterate_reversed = False
+    combinations = find_possible_combinations(
+        tuple(tuple(line) for line in rev_input_blocks[0]),
+        z_expected,
+        iterate_reversed=iterate_reversed,
+    )
+    for new_digit, new_z_expected in combinations:
+        res = find_valid_number(new_z_expected, rev_input_blocks[1:], largest=largest)
+        if res is not None:
+            return [(new_z_expected, new_digit)] + res
+    return None
+
+
+def solve(data, largest):
+    input_blocks = split_blocks(data)
+    rev_input_blocks = input_blocks[::-1]
+    result = find_valid_number(0, rev_input_blocks, largest=largest)
+    test = run(
+        data,
+        [x[1] for x in result[::-1]],
+        z_start=result[-1][0],
+    )
+    assert test["z"] == 0
+    z_start = result[-1][0]
+    assert z_start == 0
+    return int("".join(str(i) for _, i in result[::-1]))
+
 
 # PART 1
 @measure_time
 def solve1(data):
-
-    input_blocks = split_blocks(data)
-
-    stuff = []
-
-    def find_largest_number(z_expected, rev_input_blocks):
-        if len(rev_input_blocks) == 0:
-            return []
-        #for max_iter in [1000]:
-        combinations = find_possible_combinations(tuple(tuple(line) for line in rev_input_blocks[0]), z_expected)
-        if len(rev_input_blocks) == 14:
-            print(combinations)
-        for new_digit, new_z_expected in combinations:
-            if len(rev_input_blocks) == 14:
-                print(f"Testing for {new_digit}, {new_z_expected}")
-            res = find_largest_number(new_z_expected, rev_input_blocks[1:])
-            if res is not None:
-                return [(new_z_expected, new_digit)] + res
-        return None
-
-    rev_input_blocks = input_blocks[::-1]
-
-    test_max = 14
-    result = find_largest_number(0, rev_input_blocks[:test_max])
-    print(result)
-    test = run(sum(rev_input_blocks[:test_max][::-1], []), [x[1] for x in result[::-1]], z_start=result[-1][0])
-    assert test["z"] == 0
-    print([x[1] for x in result[::-1]])
-    print(f"z_start: {result[-1][0]}")
-    return int("".join(str(i) for _, i in result[::-1]))
-
+    return solve(data, largest=True)
 
 
 # PART 2
 @measure_time
 def solve2(data):
-    pass
+    return solve(data, largest=False)
 
 
 if __name__ == "__main__":
@@ -270,7 +199,7 @@ if __name__ == "__main__":
 
     data = parse(open("input.txt").read().strip())
     print("Part 1: {}".format(solve1(data)))
-    #print("Part 2: {}".format(solve2(data)))
+    print("Part 2: {}".format(solve2(data)))
 
     print("\nTime taken:")
     for func, time in times:
@@ -278,10 +207,8 @@ if __name__ == "__main__":
     print("----------------")
     print("total   {}s".format(sum(t for _, t in times)))
 
-
-    blocks = split_blocks(data)
-
-    for i in range(len(blocks[0])):
-         for block in blocks:
-             print(f"{' '.join(block[i]):<12}", end="")
-         print("\n", end="")
+    # blocks = split_blocks(data)
+    # for i in range(len(blocks[0])):
+    #      for block in blocks:
+    #          print(f"{' '.join(block[i]):<12}", end="")
+    #      print("\n", end="")
