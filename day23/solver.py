@@ -3,6 +3,7 @@
 from functools import wraps
 from datetime import datetime
 from tqdm import tqdm
+import json
 
 times = []
 
@@ -143,13 +144,16 @@ class AmphiGame:
     def map_key(self):
         return tuple(tuple(line) for line in self.map)
 
-    def find_min_energy(self, energy_so_far=0, min_energy=None, min_energy_for_map=None, level=0):
+    def find_min_energy(self, energy_so_far=0, min_energy=None, min_energy_for_map=None, level=0, path=None):
+        if path is None:
+            path = [self.map_key]
         if min_energy_for_map is None:
             min_energy_for_map = {}
         if level == 0 and self.progress:
             iter_occ = tqdm(self.occupied)
         else:
             iter_occ = self.occupied
+        min_path = None
         for src in iter_occ:
             c = self.map[src[1]][src[0]]
             if min_energy is not None and energy_so_far + self.energies[c] >= min_energy:
@@ -169,6 +173,7 @@ class AmphiGame:
                 game = type(self)([line[:] for line in self.map])
                 game.map[src[1]][src[0]] = "."
                 game.map[pos[1]][pos[0]] = c
+                new_path = path + [game.map_key]
                 if game.map_key in min_energy_for_map and min_energy_for_map[game.map_key] <= energy:
                     continue
                 else:
@@ -180,17 +185,19 @@ class AmphiGame:
                         print(energy)
                     min_energy_next = energy
                 else:
-                    min_energy_next = game.find_min_energy(
+                    min_energy_next, new_path = game.find_min_energy(
                         energy_so_far=energy,
                         min_energy=min_energy,
                         min_energy_for_map=min_energy_for_map,
                         level=level + 1,
+                        path=new_path,
                     )
                 if min_energy_next is None:
                     continue
                 if min_energy is None or min_energy_next < min_energy:
                     min_energy = min_energy_next
-        return min_energy
+                    min_path = new_path
+        return min_energy, min_path
 
     def __repr__(self):
         return "\n".join(
@@ -212,7 +219,10 @@ class AmphiGame:
 @measure_time
 def solve1(data):
     game = AmphiGame(data)
-    return game.find_min_energy()
+    min_energy, path = game.find_min_energy()
+    with open("path_part1.json", "w") as f:
+        json.dump(path, f)
+    return min_energy
 
 
 class UnfoldedAmphiGame(AmphiGame):
@@ -232,7 +242,10 @@ class UnfoldedAmphiGame(AmphiGame):
 @measure_time
 def solve2(data):
     game = UnfoldedAmphiGame.from_folded(data)
-    return game.find_min_energy()
+    min_energy, path = game.find_min_energy()
+    with open("path_part2.json", "w") as f:
+        json.dump(path, f)
+    return min_energy
 
 
 if __name__ == "__main__":
