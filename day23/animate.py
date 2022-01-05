@@ -14,7 +14,11 @@ for label, filename in [("Part 1:\n", "path_part1.json"), ("Part 2:\n", "path_pa
         sys.stdout.write("\033c")
         sys.stdout.write(label)
         sys.stdout.write("\n")
-        sys.stdout.write(str(AmphiGame(key)))
+        output = str(AmphiGame(key))
+        for i, letter in enumerate("ABCD"):
+            output = output.replace(letter, f"\033[{91+i};1m{letter}\033[0m")
+        output = output.replace("#", "█")
+        sys.stdout.write(output)
         sys.stdout.write("\n")
         sys.stdout.flush()
         time.sleep(0.3)
