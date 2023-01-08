@@ -25,58 +25,61 @@ def parse(raw_data):
 
 
 def shortest_path_heapq(grid):
-    done = set()
     distances = {}
+    via_dict = {}
     q = []
     start = (0, 0)
     nrows = len(grid)
     ncols = len(grid[0])
     goal = (nrows - 1, ncols - 1)
-    heapq.heappush(q, (0, start))
+    heapq.heappush(q, (0, start, 0))
     while q:
-        distance, pos = heapq.heappop(q)
-        if pos in done:
+        distance, pos, via = heapq.heappop(q)
+        if pos in distances:
             continue
+        distances[pos] = distance
+        via_dict[pos] = via
         if pos == goal:
-            return distance
-        done.add(pos)
+            return distance, via_dict, distances
         for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
             x, y = pos[0] + dx, pos[1] + dy
             if x < 0 or x >= ncols or y < 0 or y >= nrows:
                 continue
             new_distance = distance + grid[y][x]
-            heapq.heappush(q, (new_distance, (x, y)))
+            heapq.heappush(q, (new_distance, (x, y), pos))
 
 
 def shortest_path_dict(grid):
     distances = {}
-    done = set()
+    via_dict = {}
     q = {}
     start = (0, 0)
     nrows = len(grid)
     ncols = len(grid[0])
     goal = (nrows - 1, ncols - 1)
-    q[start] = 0
+    q[start] = (0, 0)
     while q:
-        pos, distance = min(q.items(), key=lambda x: x[1])
+        pos, (distance, via) = min(q.items(), key=lambda x: x[1])
         del q[pos]
-        if pos == goal:
-            return distance
-        if pos in done:
+        if pos in distances:
             continue
-        done.add(pos)
+        distances[pos] = distance
+        via_dict[pos] = via
+        if pos == goal:
+            return distance, via_dict, distances
         for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
             x, y = pos[0] + dx, pos[1] + dy
             if x < 0 or x >= ncols or y < 0 or y >= nrows:
                 continue
             new_distance = distance + grid[y][x]
-            q[(x, y)] = min(q.get((x, y), new_distance), new_distance)
+            if (x, y) not in q or q[x, y][0] > new_distance:
+                q[x, y] = (new_distance, pos)
 
 
 # PART 1
 @measure_time
 def solve1(data, shortest_path=shortest_path_heapq):
-    return shortest_path(data)
+    return shortest_path(data)[0]
 
 
 def fill_full_grid(grid):
@@ -101,7 +104,7 @@ def fill_full_grid(grid):
 @measure_time
 def solve2(data, shortest_path=shortest_path_heapq):
     full_grid = fill_full_grid(data)
-    return shortest_path(full_grid)
+    return shortest_path(full_grid)[0]
 
 
 if __name__ == "__main__":
