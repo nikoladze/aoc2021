@@ -2,7 +2,7 @@
 
 from functools import wraps, cache
 from datetime import datetime
-
+import heapq
 
 times = []
 
@@ -24,38 +24,58 @@ def parse(raw_data):
     return [[int(i) for i in line] for line in raw_data.split("\n")]
 
 
-def get_graph(grid):
-    import networkx as nx
-    G = nx.DiGraph()
+def shortest_path_heapq(grid):
+    done = set()
+    distances = {}
+    q = []
+    start = (0, 0)
+    nrows = len(grid)
+    ncols = len(grid[0])
+    goal = (nrows - 1, ncols - 1)
+    heapq.heappush(q, (0, start))
+    while q:
+        distance, pos = heapq.heappop(q)
+        if pos in done:
+            continue
+        if pos == goal:
+            return distance
+        done.add(pos)
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            x, y = pos[0] + dx, pos[1] + dy
+            if x < 0 or x >= ncols or y < 0 or y >= nrows:
+                continue
+            new_distance = distance + grid[y][x]
+            heapq.heappush(q, (new_distance, (x, y)))
 
-    def try_add(x0, y0, x1, y1):
-        if any(x < 0 for x in (x0, y0, x1, y1)):
-            return
-        try:
-            G.add_edge((x0, y0), (x1, y1), weight=grid[y1][x1])
-        except IndexError:
-            pass
 
-    for y, row in enumerate(grid):
-        for x, risk in enumerate(row):
-            try_add(x, y, x + 1, y)
-            try_add(x, y, x - 1, y)
-            try_add(x, y, x, y + 1)
-            try_add(x, y, x, y - 1)
-
-    return G
-
-
-def shortest_path(grid):
-    import networkx as nx
-    graph = get_graph(grid)
-    ymax = len(grid) - 1
-    return nx.dijkstra_path_length(graph, (0, 0), (ymax, ymax))
+def shortest_path_dict(grid):
+    distances = {}
+    done = set()
+    q = {}
+    start = (0, 0)
+    nrows = len(grid)
+    ncols = len(grid[0])
+    goal = (nrows - 1, ncols - 1)
+    q[start] = 0
+    while q:
+        pos, distance = min(q.items(), key=lambda x: x[1])
+        del q[pos]
+        if pos == goal:
+            return distance
+        if pos in done:
+            continue
+        done.add(pos)
+        for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            x, y = pos[0] + dx, pos[1] + dy
+            if x < 0 or x >= ncols or y < 0 or y >= nrows:
+                continue
+            new_distance = distance + grid[y][x]
+            q[(x, y)] = min(q.get((x, y), new_distance), new_distance)
 
 
 # PART 1
 @measure_time
-def solve1(data):
+def solve1(data, shortest_path=shortest_path_heapq):
     return shortest_path(data)
 
 
@@ -79,16 +99,26 @@ def fill_full_grid(grid):
 
 # PART 2
 @measure_time
-def solve2(data):
-    return shortest_path(fill_full_grid(data))
+def solve2(data, shortest_path=shortest_path_heapq):
+    full_grid = fill_full_grid(data)
+    return shortest_path(full_grid)
 
 
 if __name__ == "__main__":
     import sys
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--algorithm", choices=["heapq", "dict"], default="heapq")
+    args = parser.parse_args()
+    if args.algorithm == "heapq":
+        shortest_path = shortest_path_heapq
+    elif args.algorithm == "dict":
+        shortest_path = shortest_path_dict
 
     data = parse(open("input.txt").read().strip())
-    print("Part 1: {}".format(solve1(data)))
-    print("Part 2: {}".format(solve2(data)))
+    print("Part 1: {}".format(solve1(data, shortest_path=shortest_path)))
+    print("Part 2: {}".format(solve2(data, shortest_path=shortest_path)))
 
     print("\nTime taken:")
     for func, time in times:
